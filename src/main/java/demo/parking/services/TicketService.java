@@ -14,12 +14,13 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
 
 public class TicketService {
-    Logger logger = LoggerFactory.getLogger(TicketService.class);
+    private static final Logger logger = LoggerFactory.getLogger(TicketService.class);
     private final TicketRepository ticketRepository;
     private final PricingService pricingService;
     public TicketService(TicketRepository ticketRepository, PricingService pricingService) {
@@ -84,5 +85,37 @@ public class TicketService {
         parkedTicket.setStatus(TicketStatus.ACTIVE);
         logger.info("Parked ticket status is currently: "+ parkedTicket.getStatus() +" and it is inside parking lot without spot");
 
+    }
+
+    public Ticket controlPenalty(Ticket ticket){
+        ParkingSpot assignedSpot = ticket.getAssignedSpot();
+        ParkingSpot actualSpot = ticket.getActualSpot();
+
+        // A vehicle that left without ever parking has no actual spot to compare against,
+        // so there is nothing to penalise here.
+        if(assignedSpot == null || actualSpot == null){
+            logger.warn("Penalty check skipped for ticket {}: assignedSpot present={}, actualSpot present={}",
+                    ticket.getUuid(), assignedSpot != null, actualSpot != null);
+            return ticket;
+        }
+
+        if(Objects.equals(assignedSpot.getAllowedType(), actualSpot.getAllowedType())){
+            logger.info("Everything under control. No penalty to check");
+        }
+        else{
+            ticket.setPenaltyApplied(true);
+            findOutPenaltyReason(ticket);
+        }
+        return ticket;
+    }
+
+    public Ticket findOutPenaltyReason(Ticket ticket){
+         ParkingSpot assignedSpot= ticket.getAssignedSpot();
+         ParkingSpot actualSpot= ticket.getActualSpot();
+         String reason = String.format("Penalty reason: AssignedSpot TYPE:%s  --- " +
+                 "ActualSpot TYPE: %s",assignedSpot.getAllowedType(),actualSpot.getAllowedType());
+            logger.warn("Penalty reason: " + reason);
+         ticket.setPenaltyReason(reason);
+         return ticket;
     }
 }
