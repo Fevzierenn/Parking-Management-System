@@ -1,7 +1,9 @@
 package demo.parking.services;
 
 import demo.parking.DTO.ResponseDTO.SpotDeviceResponse;
+import demo.parking.Exceptions.ParkingSpotNotAvailableException;
 import demo.parking.entities.*;
+import demo.parking.enums.SpotStatus;
 import demo.parking.enums.TicketStatus;
 import demo.parking.events.TicketGeneratedEventPublisher;
 import org.slf4j.Logger;
@@ -43,6 +45,14 @@ public class ParkingLotService {
 
         ParkingSpot assignedSpot = ticket.getAssignedSpot();
         ParkingSpot actualSpot = device.getSpot();
+
+        // Validate the target spot before touching anything else: a spot that is already
+        // taken must never be handed to a second vehicle.
+        if (actualSpot.getStatus() == SpotStatus.OCCUPIED) {
+            logger.warn("Cannot park vehicle {}. Spot {} is already occupied", plateNo, actualSpot.getId());
+            throw new ParkingSpotNotAvailableException(
+                    "Parking Spot " + actualSpot.getId() + " Not Available to park. Find another spot");
+        }
 
         if (isDifferentSpot(assignedSpot, actualSpot)) {
             logger.warn("Vehicle parked in a different spot. Assigned spot:{} and actual spot:{}",assignedSpot,actualSpot);
