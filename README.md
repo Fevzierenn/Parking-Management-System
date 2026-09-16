@@ -27,7 +27,7 @@
 ## **3. Entry Flow & Ticket Lifecycle**
 
 1. **Gate Arrival:** The user arrives at an entry gate.
-2. **Vehicle Detection:** System detects/declares the vehicle type (`CAR`, `MOTORCYCLE`, `VAN`, `SMALL_TRUCK`).
+2. **Vehicle Detection:** System detects/declares the vehicle type (`CAR`, `MOTORCYCLE`, `VAN`, `TRUCK`).
 3. **Payment Strategy Selection:** System declare their payment strategy (`CASH`, `CARD`, `REMITTANCE`) **at the entry gate upon ticket generation** (not at exit). The generated ticket holds this `PaymentStrategy` attribute.
 4. **Spot Reservation:**
 * The system allocates the closest spot matching the vehicle type and sets the spot status to **`RESERVED`** for a **5-minute timeout window**.
@@ -84,7 +84,7 @@ Before start TL means TURKISH LIRA CURRENCY.
 * `MOTORCYCLE` = 0.5
 * `CAR` = 1.0
 * `VAN` = 2.5
-* `SMALL_TRUCK` = 5.0
+* `TRUCK` = 5.0
 These values could be change. For now declares constant.
 
 * Time Calculation Rule: Ceil function applied to duration CEIL (EXIT_t - ENTRY_t)
@@ -104,7 +104,7 @@ If total parking time exceeds **6 hours**, the system switches to a **Daily Flat
 * `MOTORCYCLE`: 350 TL
 * `CAR`: 750 TL
 * `VAN`: 1,700 TL
-* `SMALL_TRUCK`: 3,500 TL
+* `TRUCK`: 3,500 TL
 These values can be changed.  
 
 
