@@ -47,4 +47,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         ErrorResponse errorResponse = new ErrorResponse(ex.getMessage(), LocalDateTime.now());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
+
+    @ExceptionHandler(value = ParkingSpotNotAvailableException.class)
+    public ResponseEntity<ErrorResponse> handleParkingSpotNotAvailableException(ParkingSpotNotAvailableException ex, WebRequest request) {
+        log.warn("ParkingSpotNotAvailable: {}", ex.getMessage());
+        ErrorResponse errorResponse = new ErrorResponse(ex.getMessage(), LocalDateTime.now());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+    }
 }

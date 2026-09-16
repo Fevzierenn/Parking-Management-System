@@ -8,9 +8,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.test.web.servlet.MockMvc;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
  * Covers the park-confirmation step. The guard that rejects an already occupied
@@ -18,8 +22,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * of the car actually standing there; these tests pin it down.
  */
 @SpringBootTest
+@AutoConfigureMockMvc
 class ParkingLotServiceIntegrationTest {
 
+    @Autowired MockMvc mockMvc;
     @Autowired ParkingLotService parkingLotService;
     @Autowired VehicleEntryService vehicleEntryService;
     @Autowired GateService gateService;
@@ -156,5 +162,18 @@ class ParkingLotServiceIntegrationTest {
         Ticket stored = ticketRepository.findById(ticket.getUuid()).orElseThrow();
         assertThat(stored.getStatus()).isEqualTo(TicketStatus.PARKED);
         assertThat(stored.getActualSpot().getId()).isEqualTo(freeSpot.getId());
+    }
+
+    @Test
+    void theRejectionSurfacesAsConflictOverHttp() throws Exception {
+        Ticket first = enter("34 AAA 111");
+        Long takenSpotId = first.getAssignedSpot().getId();
+        parkingLotService.vehicleReachTheSpot("34 AAA 111", deviceIdOf(takenSpotId));
+
+        enter("34 BBB 222");
+
+        mockMvc.perform(post("/api/v1/spot-devices/{deviceId}/vehicle-detection", deviceIdOf(takenSpotId))
+                        .param("plateNo", "34 BBB 222"))
+                .andExpect(status().isConflict());
     }
 }
