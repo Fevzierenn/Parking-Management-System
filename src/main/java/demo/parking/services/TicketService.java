@@ -8,9 +8,11 @@ import demo.parking.entities.Vehicle;
 import demo.parking.enums.TicketStatus;
 import demo.parking.Exceptions.TicketNotFoundException;
 import demo.parking.repositories.TicketRepository;
+import demo.parking.repositories.VehicleRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -23,17 +25,26 @@ public class TicketService {
     private static final Logger logger = LoggerFactory.getLogger(TicketService.class);
     private final TicketRepository ticketRepository;
     private final PricingService pricingService;
-    public TicketService(TicketRepository ticketRepository, PricingService pricingService) {
+    private final VehicleRepository vehicleRepository;
+
+    public TicketService(TicketRepository ticketRepository, PricingService pricingService,
+                         VehicleRepository vehicleRepository) {
         this.ticketRepository = ticketRepository;
         this.pricingService = pricingService;
+        this.vehicleRepository = vehicleRepository;
     }
 
 
     private boolean hasNotExpiredTicket(Vehicle vehicle) {
-        return ticketRepository.existsByVehicle_UuidAndStatusNot(vehicle.getUuid(), TicketStatus.EXPIRED);
+        return !ticketRepository.findByVehicle_UuidAndStatusNot(vehicle.getUuid(), TicketStatus.EXPIRED).isEmpty();
     }
 
+    @Transactional
     public Ticket generateTicket(Vehicle vehicle, ParkingSpot assignedSpot, Gate entryGate) {
+        // Lock the stable parent row: locking tickets alone cannot protect an empty result.
+        // The outer entry transaction retains this lock until admission commits or rolls back.
+        vehicle = vehicleRepository.findByUuidForUpdate(vehicle.getUuid())
+                .orElseThrow(() -> new IllegalArgumentException("Vehicle must be saved before ticket generation."));
         if (hasNotExpiredTicket(vehicle))
             throw new VehicleHasNonExpiredTicketException("Vehicle already has a non-expired ticket.");
 
